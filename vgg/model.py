@@ -277,7 +277,7 @@ class Model():
                 num_val_batches = int(len(self.val_labels) / self.batch_size_val)
                 avg_loss = 0
                 for val_step in range(num_val_batches):
-                    epoch_x, epoch_y = self.next_batch(self.batch_size_val*.1,
+                    epoch_x, epoch_y = self.next_batch(self.batch_size_val,
                                                        self.val_data,
                                                        self.val_labels)
                     loss = self.sess.run([self.loss],

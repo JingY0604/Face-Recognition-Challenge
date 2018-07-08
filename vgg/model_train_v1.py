@@ -19,8 +19,8 @@ tensorboard_directory = './tmp/tensorboard/first_training'
 epochs = 10000
 use_batch_norm = False
 use_dropout = False
-batch_size = int(3023 * 0.6 * 0.35)
-batch_size_val = int(3023 * 0.3 * 0.1)
+batch_size = int(3023 * 0.6 * 0.01)
+batch_size_val = int(3023 * 0.3 * 0.01)
 learning_rate = 0.001
 
 
