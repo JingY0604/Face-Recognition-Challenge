@@ -78,11 +78,12 @@ class ConvBlock():
 
 class Model():
 
-    def __init__(self, sess, data_shape, batch_size, epochs, learning_rate, conv_parameters, max_pool_parameters, dropout_parameters, use_batch_norm, use_dropout, tensorboard_directory):
+    def __init__(self, sess, data_shape, batch_size, batch_size_val, epochs, learning_rate, conv_parameters, max_pool_parameters, dropout_parameters, use_batch_norm, use_dropout, tensorboard_directory):
         self.sess = sess
         self.data_shape = data_shape
         self.epochs = epochs
         self.batch_size = batch_size
+        self.batch_size_val = batch_size_val
         self.learning_rate = learning_rate
         self.conv_parameters = conv_parameters
         self.max_pool_parameters = max_pool_parameters
@@ -113,7 +114,7 @@ class Model():
                                  self.data_shape[1],
                                  self.data_shape[2]])
 
-        self.y = tf.placeholder(tf.float32, [None, 1])
+        self.y = tf.placeholder(tf.float32, [None, 62])
         self.is_training = tf.placeholder(dtype=tf.bool, shape=None)
 
         net = self.x
@@ -137,7 +138,7 @@ class Model():
         net = tf.layers.flatten(net,
                                 name='flatten')
         net = tf.layers.dense(inputs=net,
-                              units=60,  # tune
+                              units=128,  # tune
                               activation=tf.nn.relu,
                               use_bias=True,
                               kernel_initializer=tf.keras.initializers.he_uniform(),
@@ -163,7 +164,7 @@ class Model():
 
         net = tf.nn.relu(net)
         net = tf.layers.dense(inputs=net,
-                              units=60,  # tune
+                              units=128,  # tune
                               activation=tf.nn.relu,
                               use_bias=True,
                               kernel_initializer=tf.keras.initializers.he_uniform(),
@@ -189,7 +190,7 @@ class Model():
 
         net = tf.nn.relu(net)
         net = tf.layers.dense(inputs=net,
-                              units=1,
+                              units=62,
                               activation=None,
                               use_bias=True,
                               kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
@@ -203,13 +204,13 @@ class Model():
         # Results
         # ---------------------------------------------_------------------------
         # Loss Calculation
-        self.loss = tf.losses.softmax_cross_entropy(onehot_labels=label,
+        self.loss = tf.losses.softmax_cross_entropy(onehot_labels=self.y,
                                                     logits=net)
         self.loss_summary = tf.summary.scalar(name='Loss',
                                               tensor=self.loss)
         self.predicted_indices = tf.argmax(input=net,
                                            axis=1)
-        self.real_indices = tf.argmax(input=label,
+        self.real_indices = tf.argmax(input=self.y,
                                       axis=1)
         self.accuracy = tf.cast(tf.equal(self.predicted_indices, self.real_indices),
                                 dtype=tf.float32)
@@ -256,14 +257,13 @@ class Model():
         val_writer.add_graph(self.sess.graph)
         for epoch in range(1, self.epochs+1):
             for step in range(num_batches):
-                step += 1
+                # step += 1
                 batch_x, batch_y = self.next_batch(self.batch_size, self.data, self.labels)
-                batch_y = batch_y[:, None]
 
                 # print('Batch x: {}'.format(str(list(batch_x.shape)).rjust(10, ' ')))
                 # print('Batch y: {}'.format(str(list(batch_y.shape)).rjust(10, ' ')))
 
-                loss, summary, _, = self.sess.run([self.loss, self.loss_summary, self.optimizer],
+                loss, summary, _, = self.sess.run([self.loss, self.merged_summaries, self.optimizer],
                                                   feed_dict={self.is_training: True,
                                                              self.x: batch_x,
                                                              self.y: batch_y})
@@ -274,18 +274,22 @@ class Model():
 
             # Validation
             if epoch % 10 is 0:
-                epoch_x, epoch_y = self.next_batch(len(self.val_labels), self.val_data, self.val_labels)
-                epoch_y = epoch_y[:, None]
-                loss = self.sess.run([self.loss],
-                                     feed_dict={self.is_training: False,
-                                                self.x: epoch_x,
-                                                self.y: epoch_y})
-                val_summary = self.sess.run(self.val_summary,
-                                            feed_dict={self.loss_output: loss[0]})
-
-                val_writer.add_summary(val_summary, epoch)
-
-                print('> Validation: Epoch: {} Loss: {}'.format(epoch, round(loss[0], 5)))
+                num_val_batches = int(len(self.val_labels) / self.batch_size_val)
+                avg_loss = 0
+                for val_step in range(num_val_batches):
+                    epoch_x, epoch_y = self.next_batch(self.batch_size_val*.1,
+                                                       self.val_data,
+                                                       self.val_labels)
+                    loss = self.sess.run([self.loss],
+                                         feed_dict={self.is_training: False,
+                                                    self.x: epoch_x,
+                                                    self.y: epoch_y})
+                    val_summary = self.sess.run(self.val_summary,
+                                                feed_dict={self.loss_output: loss})
+                    avg_loss += loss
+                    val_writer.add_summary(val_summary, epoch)
+                avg_loss = avg_loss/num_val_batches
+                print('> Validation: Epoch: {} Loss: {}'.format(epoch, round(avg_loss, 5)))
                 print('--------------------------------------------------------')
                 save_path = saver.save(self.sess, model_path)
                 print('> Model Saved at {0}'.format(save_path))
