@@ -50,8 +50,6 @@ max_pool_specifications = [[{'use': False, 'pool_size': [3, 3], 'strides': [1, 1
 dropout_parameters = [[{'use': True, 'rate': 0.5},
                        {'use': True, 'rate': 0.5}]]
 
-
-
 data_shape = [62, 47, 3]
 
 model = Model(sess=tf.Session(),
@@ -59,12 +57,16 @@ model = Model(sess=tf.Session(),
               batch_size=batch_size,
               epochs=epochs,
               learning_rate=learning_rate,
-              conv_parameters,
-              max_pool_parameters,
-              dropout_parameters,
+              conv_parameters=conv_parameters,
+              max_pool_parameters=max_pool_parameters,
+              dropout_parameters=dropout_parameters,
               use_batch_norm=use_dropout,
               use_dropout=use_dropout,
               tensorboard_directory=tensorboard_directory)
+
+
+# Data
+#------------------------------------------------------------------------------
 
 dataset = fetch_lfw_people(data_home=None,
                            # resize=0.6,
@@ -76,6 +78,9 @@ images = dataset.images
 labels = dataset.target
 
 X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.30)
+
+
+
 model.input_data(data=X_train,
                  labels=y_train,
                  val_data=X_test,
