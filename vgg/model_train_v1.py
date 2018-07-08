@@ -42,7 +42,7 @@ conv2d_specifications = [[{'filters': 64, 'kernel_size': [3, 3], 'strides': (1, 
 max_pool_specifications = [[{'use': False, 'pool_size': [3, 3], 'strides': [1, 1]},
                             {'use': True, 'pool_size': [3, 3], 'strides': [1, 1]}],
                            [{'use': False, 'pool_size': [3, 3], 'strides': [1, 1]},
-                            {'use': True, 'pool_size': [3, 3], 'strides': [1, 1]}]
+                            {'use': True, 'pool_size': [3, 3], 'strides': [1, 1]}]]
 
 # Dropout inputs
 #     use : to use dropout in this layer
@@ -78,7 +78,6 @@ images = dataset.images
 labels = dataset.target
 
 X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.30)
-
 
 
 model.input_data(data=X_train,
