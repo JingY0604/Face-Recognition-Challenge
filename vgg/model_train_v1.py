@@ -77,10 +77,15 @@ dataset = fetch_lfw_people(data_home=None,
 images = dataset.images
 labels = dataset.target
 
-X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.30)
+labels_encoded = np.zeros((len(labels), len(set(labels))))
+labels_encoded[np.arange(len(labels)), labels] = 1
+
+X_train, X_test, y_train, y_test = train_test_split(images, labels_encoded, test_size=0.30)
 
 
 model.input_data(data=X_train,
                  labels=y_train,
                  val_data=X_test,
                  val_labels=y_test)
+
+model.train()
