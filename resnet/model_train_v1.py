@@ -57,22 +57,6 @@ dropout_parameters = [{'use': True, 'rate': 0.5},
 # Fully Connected Layers unit size
 fc_parameters = [{'units': 282}, {'units': 282}]
 
-data_shape = [62, 47, 3]
-batch_size = int(3023 * 0.6 * 0.6 * 0.01)
-batch_size_val = int(3023 * 0.6 * 0.3 * 0.01)
-batch_size_test = int(3023 * 0.3 * 0.01)
-
-model = Model(sess=tf.Session(),
-              data_shape=data_shape,
-              batch_size=batch_size,
-              batch_size_val=batch_size_val,
-              epochs=epochs,
-              learning_rate=learning_rate,
-              fc_parameters=fc_parameters,
-              use_batch_norm=use_dropout,
-              use_dropout=use_dropout,
-              tensorboard_directory=tensorboard_directory)
-
 
 # Data
 #------------------------------------------------------------------------------
@@ -92,6 +76,23 @@ labels_encoded[np.arange(len(labels)), labels] = 1
 X_train, X_test, y_train, y_test = train_test_split(images, labels_encoded, test_size=0.30)
 X_train, X_val, y_train, y_val = train_test_split(images, labels_encoded, test_size=0.30)
 
+
+data_shape = [62, 47, 3]
+batch_size = int(3023 * 0.6 * 0.6 * 0.01)
+batch_size_val = int(3023 * 0.6 * 0.3 * 0.01)
+batch_size_test = int(3023 * 0.3 * 0.01)
+
+model = Model(sess=tf.Session(),
+              data_shape=data_shape,
+              num_classes=len(set(labels)),
+              num_dense=3,
+              batch_size=batch_size,
+              batch_size_val=batch_size_val,
+              epochs=epochs,
+              learning_rate=learning_rate,
+              use_batch_norm=use_dropout,
+              use_dropout=use_dropout,
+              tensorboard_directory=tensorboard_directory)
 
 model.train_data(data=X_train,
                  labels=y_train)
