@@ -48,9 +48,6 @@ class Model(object):
         self.val_labels = labels
 
     def init_model(self):
-        data_shape = self.data_shape
-        data_shape.insert(0, None)
-
         self.x = tf.placeholder(dtype=tf.float32,
                                 shape=[None,
                                        self.data_shape[0],
@@ -100,7 +97,8 @@ class Model(object):
 
         # Results
         #----------------------------------------------------------------------
-        self.loss = slim.losses.softmax_cross_entropy(net, self.y)
+        self.loss = tf.losses.softmax_cross_entropy(onehot_labels=self.y,
+                                                    logits=net)
 
         self.loss_summary = tf.summary.scalar(name='Loss',
                                               tensor=self.loss)
@@ -151,7 +149,7 @@ class Model(object):
                                                           self.sess.graph) for phase in ['train', 'val']]
 
         # self.sess.run(init_op)
-        num_batches = int(len(self.labels) / self.batch_size)
+        num_batches = int(len(self.train_labels) / self.batch_size)
         train_writer.add_graph(self.sess.graph)
         val_writer.add_graph(self.sess.graph)
         for epoch in range(1, self.epochs+1):
@@ -201,3 +199,14 @@ class Model(object):
             if epoch % 200 is 0:
                 print('> Model Saved at {0}'.format(save_path))
                 print('--------------------------------------------------------')
+
+    def next_batch(self, batch_size, data, labels):
+
+        idx = np.arange(0, len(labels))
+        np.random.shuffle(idx)
+
+        idx = idx[:batch_size]
+        data_shuffled = [data[i] for i in idx]
+        labels_shuffled = [labels[i] for i in idx]
+
+        return np.asarray(data_shuffled), np.asarray(labels_shuffled)
