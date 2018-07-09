@@ -23,6 +23,8 @@ class Model(object):
         self.use_dropout = use_dropout
         self.tensorboard_directory = tensorboard_directory
 
+        self.init_model()
+
     def train_data(self, data, labels):
         assert type(data).__module__ == np.__name__
         assert type(labels).__module__ == np.__name__
