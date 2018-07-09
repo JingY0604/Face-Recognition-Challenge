@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+from tensorflow.contrib.slim.nets import resnet_v2 as resnet
 import numpy as np
 import os
 
@@ -65,12 +66,12 @@ class Model(object):
 
         print('> Input Tensor: {}'.format(str(list(net.get_shape())).rjust(10, ' ')))
 
-        net = slim.nets.resnet_v2_50(inputs=net,
-                                     is_training=self.is_training,
-                                     scope='resnet_v2_50')
+        net, predictions = resnet.resnet_v2_50(inputs=net,
+                                               num_classes=self.num_classes,
+                                               is_training=self.is_training,
+                                               scope='resnet_v2_50')
 
-        net = slim.flatten(inputs=net,
-                           scope='flatten')
+        net = slim.flatten(inputs=net)
 
         for i in range(self.num_dense-1):
             net = slim.fully_connected(inputs=net,
@@ -81,19 +82,19 @@ class Model(object):
             print('> Fully Connected {}: {}'.format(i+1,
                                                     str(list(net.get_shape())).rjust(10, ' ')))
             if self.use_dropout:
-                if self.dropout_parameters[i]['use']:
-                    net = slim.dropout(inputs=net,
-                                       keep_prob=0.5,
-                                       is_training=self.is_training,
-                                       scope=None)
+                net = slim.dropout(inputs=net,
+                                   keep_prob=0.5,
+                                   is_training=self.is_training,
+                                   scope=None)
             # if self.use_batch_norm:
             net = slim.batch_norm(inputs=net,
                                   is_training=self.is_training)
             net = tf.nn.relu(net)
-        net.slim.fully_connected(inputs=net,
-                                 num_outputs=self.num_classes,
-                                 activation_fn=None,
-                                 scope='fc_{}'.format(self.num_dense))
+
+        net = slim.fully_connected(inputs=net,
+                                   num_outputs=self.num_classes,
+                                   activation_fn=None,
+                                   scope='fc_{}'.format(self.num_dense))
         print('> Fully Connected {}: {}'.format(self.num_dense,
                                                 str(list(net.get_shape())).rjust(10, ' ')))
 
