@@ -74,7 +74,7 @@ class Model(object):
             net = slim.fully_connected(inputs=net,
                                        num_outputs=100,
                                        activation_fn=tf.nn.relu,
-                                       trainable=self.trainable
+                                       trainable=True,
                                        scope='fc_{}'.format(i+1))
             print('> Fully Connected {}: {}'.format(i+1,
                                                     str(list(net.get_shape())).rjust(10, ' ')))
