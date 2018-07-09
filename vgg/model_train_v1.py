@@ -14,13 +14,15 @@ print(dataset.images.shape)
 print(len(set(dataset.target_names)))
 '''
 
-tensorboard_directory = './tmp/tensorboard/first_training'
+tensorboard_directory = './tmp/tensorboard/third_training'
 
-epochs = 10000
-use_batch_norm = False
-use_dropout = False
-batch_size = int(3023 * 0.6 * 0.01)
-batch_size_val = int(3023 * 0.3 * 0.01)
+epochs = 1000000
+use_batch_norm = True
+use_dropout = True
+batch_size = int(3023 * 0.6 * 0.6 * 0.01)
+batch_size_val = int(3023 * 0.6 * 0.3 * 0.01)
+batch_size_test = int(3023 * 0.3 * 0.01)
+
 learning_rate = 0.001
 
 
@@ -33,6 +35,8 @@ learning_rate = 0.001
 conv2d_specifications = [[{'filters': 64, 'kernel_size': [3, 3], 'strides': (1, 1)},
                           {'filters': 64, 'kernel_size': [3, 3], 'strides': (1, 1)}],
                          [{'filters': 128, 'kernel_size': [3, 3], 'strides': (1, 1)},
+                          {'filters': 128, 'kernel_size': [3, 3], 'strides': (1, 1)}],
+                         [{'filters': 128, 'kernel_size': [3, 3], 'strides': (1, 1)},
                           {'filters': 128, 'kernel_size': [3, 3], 'strides': (1, 1)}]]
 
 # Max Pool inputs
@@ -40,16 +44,21 @@ conv2d_specifications = [[{'filters': 64, 'kernel_size': [3, 3], 'strides': (1, 
 #                 Can be a single integer to specify the same value for all spatial dimensions
 #     strides : n integer or tuple/list of 2 integers, specifying the strides of the pooling operation
 #               Can be a single integer to specify the same value for all spatial dimensions
-max_pool_specifications = [[{'use': False, 'pool_size': [3, 3], 'strides': [1, 1]},
+max_pool_specifications = [[None,
                             {'use': True, 'pool_size': [3, 3], 'strides': [1, 1]}],
-                           [{'use': False, 'pool_size': [3, 3], 'strides': [1, 1]},
+                           [None,
+                            {'use': True, 'pool_size': [3, 3], 'strides': [1, 1]}],
+                           [None,
                             {'use': True, 'pool_size': [3, 3], 'strides': [1, 1]}]]
 
 # Dropout inputs
 #     use : to use dropout in this layer
 #     rate : dropout rate
-dropout_parameters = [[{'use': True, 'rate': 0.5},
-                       {'use': True, 'rate': 0.5}]]
+dropout_parameters = [{'use': True, 'rate': 0.5},
+                      {'use': True, 'rate': 0.5}]
+
+# Fully Connected Layers unit size
+fc_parameters = [{'units': 282}, {'units': 282}]
 
 data_shape = [62, 47, 3]
 
@@ -57,11 +66,13 @@ model = Model(sess=tf.Session(),
               data_shape=data_shape,
               batch_size=batch_size,
               batch_size_val=batch_size_val,
+              batch_size_test=batch_size_test,
               epochs=epochs,
               learning_rate=learning_rate,
               conv_parameters=conv2d_specifications,
               max_pool_parameters=max_pool_specifications,
               dropout_parameters=dropout_parameters,
+              fc_parameters=fc_parameters,
               use_batch_norm=use_dropout,
               use_dropout=use_dropout,
               tensorboard_directory=tensorboard_directory)
@@ -83,11 +94,14 @@ labels_encoded = np.zeros((len(labels), len(set(labels))))
 labels_encoded[np.arange(len(labels)), labels] = 1
 
 X_train, X_test, y_train, y_test = train_test_split(images, labels_encoded, test_size=0.30)
+X_train, X_train_val, y_train, y_train_val = train_test_split(images, labels_encoded, test_size=0.30)
 
 
 model.input_data(data=X_train,
                  labels=y_train,
-                 val_data=X_test,
-                 val_labels=y_test)
+                 val_data=X_train_val,
+                 val_labels=y_train_val,
+                 test_data=X_test,
+                 test_labels=y_test)
 
 model.train()

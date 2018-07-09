@@ -78,33 +78,40 @@ class ConvBlock():
 
 class Model():
 
-    def __init__(self, sess, data_shape, batch_size, batch_size_val, epochs, learning_rate, conv_parameters, max_pool_parameters, dropout_parameters, use_batch_norm, use_dropout, tensorboard_directory):
+    def __init__(self, sess, data_shape, batch_size, batch_size_val, batch_size_test, epochs, learning_rate, conv_parameters, max_pool_parameters, dropout_parameters, fc_parameters, use_batch_norm, use_dropout, tensorboard_directory):
         self.sess = sess
         self.data_shape = data_shape
         self.epochs = epochs
         self.batch_size = batch_size
         self.batch_size_val = batch_size_val
+        self.batch_size_test = batch_size_test
         self.learning_rate = learning_rate
         self.conv_parameters = conv_parameters
         self.max_pool_parameters = max_pool_parameters
         self.dropout_parameters = dropout_parameters
+        self.fc_parameters = fc_parameters
         self.use_batch_norm = use_batch_norm
         self.use_dropout = use_dropout
         self.tensorboard_directory = tensorboard_directory
 
         self.initModel()
 
-    def input_data(self, data, labels, val_data, val_labels):
+    def input_data(self, data, labels, val_data, val_labels, test_data, test_labels):
         assert type(data).__module__ == np.__name__
         assert type(labels).__module__ == np.__name__
         assert type(val_data).__module__ == np.__name__
         assert type(val_labels).__module__ == np.__name__
+        assert type(test_data).__module__ == np.__name__
+        assert type(test_labels).__module__ == np.__name__
 
         self.data = data
         self.labels = labels
 
         self.val_data = val_data
         self.val_labels = val_labels
+
+        self.test_data = test_data
+        self.test_labels = test_labels
 
     def initModel(self):
 
@@ -138,7 +145,7 @@ class Model():
         net = tf.layers.flatten(net,
                                 name='flatten')
         net = tf.layers.dense(inputs=net,
-                              units=128,  # tune
+                              units=self.fc_parameters[0]['units'],  # tune
                               activation=tf.nn.relu,
                               use_bias=True,
                               kernel_initializer=tf.keras.initializers.he_uniform(),
@@ -164,7 +171,7 @@ class Model():
 
         net = tf.nn.relu(net)
         net = tf.layers.dense(inputs=net,
-                              units=128,  # tune
+                              units=self.fc_parameters[1]['units'],  # tune
                               activation=tf.nn.relu,
                               use_bias=True,
                               kernel_initializer=tf.keras.initializers.he_uniform(),
@@ -208,15 +215,32 @@ class Model():
                                                     logits=net)
         self.loss_summary = tf.summary.scalar(name='Loss',
                                               tensor=self.loss)
+
         self.predicted_indices = tf.argmax(input=net,
                                            axis=1)
         self.real_indices = tf.argmax(input=self.y,
                                       axis=1)
+
         self.accuracy = tf.cast(tf.equal(self.predicted_indices, self.real_indices),
                                 dtype=tf.float32)
         self.accuracy = tf.reduce_mean(self.accuracy)
         self.accuracy_summary = tf.summary.scalar(name='Accuracy',
                                                   tensor=self.accuracy)
+
+        self.precision = tf.cast(tf.metrics.precision(labels=self.real_indices,
+                                                      predictions=self.predicted_indices), dtype=tf.float32)
+        self.precision_summary = tf.summary.scalar(name='Precision',
+                                                   tensor=self.precision)
+
+        self.recall = tf.cast(tf.metrics.recall(labels=self.real_indices,
+                                                predictions=self.predicted_indices), dtype=tf.float32)
+        self.recall_summary = tf.summary.scalar(name='Recall',
+                                                tensor=self.recall)
+
+        # self.f1_score = (2 * self.precision * self.recall) / (self.precision + self.recall)
+        # self.f1_summary = tf.summary.scalar(name='F1 Score',
+        #                                     tensor=self.f1f1_score)
+
         self.merged_summaries = tf.summary.merge(inputs=[self.loss_summary, self.accuracy_summary])
         self.val_accuracy = tf.placeholder(dtype=tf.float32, shape=None)
         self.val_summary = tf.summary.scalar(name='Val Accuracy',
@@ -267,7 +291,7 @@ class Model():
                                                   feed_dict={self.is_training: True,
                                                              self.x: batch_x,
                                                              self.y: batch_y})
-                if step is num_batches:
+                if step+1 is num_batches:
                     # Output Loss to Terminal, Summary to TensorBoard
                     print("> Epoch: {} Loss: {}".format(epoch, round(loss, 5)))
                     train_writer.add_summary(summary, step)
@@ -275,40 +299,49 @@ class Model():
             # Validation
             if epoch % 10 is 0:
                 num_val_batches = int(len(self.val_labels) / self.batch_size_val)
-                avg_loss = 0
+                running_loss, running_accuracy = 0, 0
                 for val_step in range(num_val_batches):
                     epoch_x, epoch_y = self.next_batch(self.batch_size_val,
                                                        self.val_data,
                                                        self.val_labels)
-                    loss = self.sess.run([self.loss],
-                                         feed_dict={self.is_training: False,
-                                                    self.x: epoch_x,
-                                                    self.y: epoch_y})
-                    val_summary = self.sess.run(self.val_summary,
-                                                feed_dict={self.loss_output: loss})
-                    avg_loss += loss
-                    val_writer.add_summary(val_summary, epoch)
-                avg_loss = avg_loss/num_val_batches
-                print('> Validation: Epoch: {} Loss: {}'.format(epoch, round(avg_loss, 5)))
+                    loss, accuracy = self.sess.run([self.loss, self.accuracy],
+                                                   feed_dict={self.is_training: False,
+                                                              self.x: epoch_x,
+                                                              self.y: epoch_y})
+
+                    running_loss += loss
+                    running_accuracy += accuracy
+
+                accuracy = running_accuracy/num_val_batches
+
+                val_summary = self.sess.run(self.val_summary,
+                                            feed_dict={self.val_accuracy: accuracy})
+                val_writer.add_summary(val_summary, epoch)
+                print('> Validation: Epoch: {} Accuracy: {}'.format(
+                    epoch, round(accuracy, 5)))
                 print('--------------------------------------------------------')
-                save_path = saver.save(self.sess, model_path)
+                save_path = saver.save(self.sess, model_path, global_step=epoch)
+
+            if epoch % 500 is 0:
                 print('> Model Saved at {0}'.format(save_path))
                 print('--------------------------------------------------------')
 
-            # # TODO: Test Accuracy in multiple batches, none of this 1 batch crap
-            # epoch_x, epoch_y = self.next_batch(self.batch_size, self.data, self.labels)
-            # epoch_y = epoch_y[:, None]
-            # loss, accuracy = self.sess.run([self.loss, self.accuracy],
-            #                                feed_dict={self.is_training: True,
-            #                                           self.x: batch_x,
-            #                                           self.y: batch_y})
-            #
-            # print("> Epoch: {0}\tLoss: {1}\tAccuracy {2}".format(
-            #     str(epoch).rjust(6), str(loss/20).rjust(6), str(accuracy/20).rjust(6)))
-            #
-            # if epoch % 10 is 0:
-            #
-            #     print('--------------------------------------------------------')
+    def train_init(self):
+
+        model_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            self.optimizer = tf.train.AdamOptimizer().minimize(self.loss,
+                                                               var_list=model_variables)
+        self.sess.run(tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
+
+    def test(self):
+        num_batches = int(len(self.val_labels) / self.batch_size_val)
+        precision, recall = self.sess.run([self.precision, self.recall],
+                                          feed_dict={self.is_training: False,
+                                                     self.x: self.test_data,
+                                                     self.y: self.test_labels})
+        return precision, recall, f1_score
 
     def next_batch(self, batch_size, data, labels):
 
