@@ -19,9 +19,6 @@ tensorboard_directory = './tmp/tensorboard/fourth_training'
 epochs = 1000000
 use_batch_norm = True
 use_dropout = True
-batch_size = int(3023 * 0.6 * 0.6 * 0.01)
-batch_size_val = int(3023 * 0.6 * 0.3 * 0.01)
-batch_size_test = int(3023 * 0.3 * 0.01)
 
 learning_rate = 0.001
 
@@ -61,17 +58,16 @@ dropout_parameters = [{'use': True, 'rate': 0.5},
 fc_parameters = [{'units': 282}, {'units': 282}]
 
 data_shape = [62, 47, 3]
+batch_size = int(3023 * 0.6 * 0.6 * 0.01)
+batch_size_val = int(3023 * 0.6 * 0.3 * 0.01)
+batch_size_test = int(3023 * 0.3 * 0.01)
 
 model = Model(sess=tf.Session(),
               data_shape=data_shape,
               batch_size=batch_size,
               batch_size_val=batch_size_val,
-              batch_size_test=batch_size_test,
               epochs=epochs,
               learning_rate=learning_rate,
-              conv_parameters=conv2d_specifications,
-              max_pool_parameters=max_pool_specifications,
-              dropout_parameters=dropout_parameters,
               fc_parameters=fc_parameters,
               use_batch_norm=use_dropout,
               use_dropout=use_dropout,
@@ -94,14 +90,14 @@ labels_encoded = np.zeros((len(labels), len(set(labels))))
 labels_encoded[np.arange(len(labels)), labels] = 1
 
 X_train, X_test, y_train, y_test = train_test_split(images, labels_encoded, test_size=0.30)
-X_train, X_train_val, y_train, y_train_val = train_test_split(images, labels_encoded, test_size=0.30)
+X_train, X_val, y_train, y_val = train_test_split(images, labels_encoded, test_size=0.30)
 
 
-model.input_data(data=X_train,
-                 labels=y_train,
-                 val_data=X_train_val,
-                 val_labels=y_train_val,
-                 test_data=X_test,
-                 test_labels=y_test)
+model.train_data(data=X_train,
+                 labels=y_train)
+model.val_data(data=X_val,
+               labels=y_val)
+model.test_data(data=X_test,
+                labels=y_test)
 
 model.train()

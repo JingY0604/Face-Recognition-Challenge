@@ -326,7 +326,7 @@ class Model():
                 print('> Model Saved at {0}'.format(save_path))
                 print('--------------------------------------------------------')
 
-    def train_init(self):
+    def test_init(self):
 
         model_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
