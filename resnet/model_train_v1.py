@@ -14,7 +14,7 @@ print(dataset.images.shape)
 print(len(set(dataset.target_names)))
 '''
 
-tensorboard_directory = './tmp/tensorboard/fourth_training'
+tensorboard_directory = './tmp/tensorboard/001'
 
 epochs = 1000000
 use_batch_norm = True
@@ -78,9 +78,9 @@ X_train, X_val, y_train, y_val = train_test_split(images, labels_encoded, test_s
 
 
 data_shape = [62, 47, 3]
-batch_size = int(3023 * 0.6 * 0.6 * 0.01)
-batch_size_val = int(3023 * 0.6 * 0.3 * 0.01)
-batch_size_test = int(3023 * 0.3 * 0.01)
+batch_size = int(3023 * 0.6 * 0.6 * 0.05)
+batch_size_val = int(3023 * 0.6 * 0.3 * 0.05)
+batch_size_test = int(3023 * 0.3 * 0.05)
 
 model = Model(sess=tf.Session(),
               data_shape=data_shape,
