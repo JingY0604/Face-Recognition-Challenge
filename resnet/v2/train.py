@@ -8,6 +8,8 @@ from model import Model
 
 from fire import Fire
 
+from utils.tensorboard import TensorBoard
+
 '''
 Data Description
 ----------------
@@ -21,6 +23,9 @@ print(len(set(dataset.target_names)))
 
 def main(restore=True):
     tensorboard_directory = r'./tmp/tensorboard/001'
+    tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\alexnet\tmp\tensorboard\third_training',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\v2\tmp\tensorboard\001']
+    tensorboard_names = ['AlexNet', 'ResNet']
 
     epochs = 1000000
     use_batch_norm = True
@@ -59,6 +64,12 @@ def main(restore=True):
     batch_size = int(3023 * 0.6 * 0.6 * 0.05)
     batch_size_val = int(3023 * 0.6 * 0.3 * 0.05)
     batch_size_test = int(3023 * 0.3 * 0.05)
+
+    cmd = TensorBoard.make(paths=tensorboard_paths,
+                           names=tensorboard_names,
+                           host='127.0.0.1',
+                           _print=True,
+                           copy=True)
 
     model = Model(sess=tf.Session(),
                   data_shape=data_shape,

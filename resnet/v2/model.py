@@ -188,8 +188,8 @@ class Model(object):
 
         # If the tensorboard directory does not exist make it
         # Else if the user wishes to restore, restore the model
-        if not Path.exists(self.tensorboard_directory):
-            Path.make_dir(self.tensorboard_directory)
+        if not Paths.exists(self.tensorboard_directory):
+            Paths.make_dir(self.tensorboard_directory)
         elif is_restore:
             try:
                 restore_path = tf.train.latest_checkpoint(checkpoint_dir=self.tensorboard_directory + '/model/')
