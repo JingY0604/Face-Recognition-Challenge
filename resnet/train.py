@@ -24,7 +24,7 @@ print(len(set(dataset.target_names)))
 def main(restore=True):
     tensorboard_directory = r'./tmp/tensorboard/001'
     tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\alexnet\tmp\tensorboard\third_training',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\tmp\tensorboard\001']
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\v2\tmp\tensorboard\001']
     tensorboard_names = ['AlexNet', 'ResNet']
 
     epochs = 1000000
