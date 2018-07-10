@@ -9,9 +9,7 @@ from tensorflow.python.saved_model import tag_constants
 import numpy as np
 import os
 
-import easygui
-
-from colors import Colors
+from utils.paths import Paths
 
 
 class Model(object):
@@ -190,8 +188,8 @@ class Model(object):
 
         # If the tensorboard directory does not exist make it
         # Else if the user wishes to restore, restore the model
-        if not os.path.exists(self.tensorboard_directory):
-            os.makedirs(self.tensorboard_directory)
+        if not Path.exists(self.tensorboard_directory):
+            Path.make_dir(self.tensorboard_directory)
         elif is_restore:
             try:
                 restore_path = tf.train.latest_checkpoint(checkpoint_dir=self.tensorboard_directory + '/model/')
@@ -211,7 +209,7 @@ class Model(object):
         train_writer.add_graph(self.sess.graph)
         val_writer.add_graph(self.sess.graph)
         print('--------------------------------------------------------')
-        print('Begin Training ...')
+        print('> Begin Training ...')
         print('--------------------------------------------------------')
         for epoch in range(last_epoch, self.epochs+1):
             global_epoch = self.sess.run(self.global_epoch) - 1
