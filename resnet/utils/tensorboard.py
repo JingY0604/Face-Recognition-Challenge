@@ -44,7 +44,6 @@ class TensorBoard(object):
 
 
 if __name__ == '__main__':
-    import time
     paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\alexnet\tmp\tensorboard\third_training',
              r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\v2\tmp\tensorboard\001']
     names = ['AlexNet', 'ResNet']
