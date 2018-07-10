@@ -1,6 +1,4 @@
 import win32clipboard
-import subprocess
-import psutil
 import os
 
 
