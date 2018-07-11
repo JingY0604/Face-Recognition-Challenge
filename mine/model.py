@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-from tensorflow.contrib.slim.nets import resnet_v2 as resnet
+from tensorflow.contrib.slim.nets import alexnet
 from tensorflow.python.saved_model import tag_constants
 import numpy as np
 import os
@@ -12,9 +12,77 @@ import os
 from utils.paths import Paths
 
 
+class ConvBlock():
+
+    def __init__(self,
+                 input_tensor,
+                 conv_param,
+                 pool_param,
+                 inner_activation,
+                 last_activation,
+                 use_batch_norm,
+                 is_training,
+                 trainable,
+                 padding='same'):
+        self.input_tensor = input_tensor
+        self.conv_param = conv_param
+        self.pool_param = pool_param
+        self.inner_activation = inner_activation
+        self.last_activation = last_activation
+        self.use_batch_norm = use_batch_norm
+        self.is_training = is_training
+        self.trainable = trainable
+        self.padding = padding
+
+    def build(self):
+        for layer_index in range(len(self.conv_param)):
+
+            conv_layer = self.conv_param[layer_index]
+            pool_layer = self.pool_param[layer_index]
+
+            if layer_index is 0:
+                network = self.input_tensor
+
+            activation = self.inner_activation
+            use_batch_norm = self.use_batch_norm
+            # If is last layer dont use batch norm
+            if layer_index is len(self.conv_param) - 1:
+                activation = self.last_activation
+                use_batch_norm = False
+
+            network = tf.layers.conv2d(inputs=network,
+                                       filters=conv_layer['filters'],
+                                       kernel_size=conv_layer['kernel_size'],
+                                       strides=conv_layer['strides'],
+                                       padding=self.padding,
+                                       activation=None,
+                                       use_bias=True,
+                                       kernel_initializer=tf.keras.initializers.he_uniform(),
+                                       trainable=True)
+
+            if use_batch_norm:
+                network = tf.layers.batch_normalization(inputs=network,
+                                                        training=self.is_training,
+                                                        trainable=self.trainable,
+                                                        scale=True)
+
+            if activation is not None:
+                network = activation(network,
+                                     name='relu')
+
+            if pool_layer is not None:
+                if pool_layer['use']:
+                    network = tf.layers.max_pooling2d(inputs=network,
+                                                      pool_size=pool_layer['pool_size'],
+                                                      strides=pool_layer['strides'],
+                                                      padding='valid',
+                                                      name='pool')
+        return network
+
+
 class Model(object):
 
-    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, tensorboard_directory, val_epoch=10):
+    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, conv_parameters, max_pool_parameters tensorboard_directory, val_epoch=10):
         self.sess = sess
         self.data_shape = data_shape
         self.num_classes = num_classes
@@ -28,6 +96,8 @@ class Model(object):
         self.use_dropout = use_dropout
         self.dropout_parameters = dropout_parameters
         self.fc_parameters = fc_parameters
+        self.conv_parameters = conv_parameters
+        self.max_pool_parameters = max_pool_parameters
         self.tensorboard_directory = tensorboard_directory
 
         self.init_model()
@@ -73,10 +143,19 @@ class Model(object):
 
         print('> Input Tensor: {}'.format(str(list(net.get_shape())).rjust(10, ' ')))
 
-        net, _ = resnet.resnet_v2_50(inputs=net,
-                                     num_classes=self.num_classes,
-                                     is_training=self.is_training,
-                                     scope='resnet_v2_50')
+        layer_index = 1
+        for conv_param, pool_param in zip(self.conv_parameters, self.max_pool_parameters):
+            net = ConvBlock(input_tensor=net,
+                            conv_param=conv_param,
+                            pool_param=pool_param,
+                            inner_activation=tf.nn.relu,
+                            last_activation=tf.nn.relu,
+                            use_batch_norm=self.use_batch_norm,
+                            is_training=self.is_training,
+                            trainable=True).build()
+            print('> Layer {}: {}'.format(str(layer_index).rjust(3, ' '),
+                                          str(list(net.get_shape())).rjust(10, ' ')))
+            layer_index += 1
 
         net = slim.flatten(inputs=net)
 
@@ -137,37 +216,6 @@ class Model(object):
         self.val_summary = tf.summary.scalar(name='Val Accuracy',
                                              tensor=self.val_accuracy)
 
-    # def train_init(self):
-    #
-    #     model_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-    #     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    #     with tf.control_dependencies(update_ops):
-    #         self.optimizer = tf.train.AdamOptimizer().minimize(self.loss,
-    #                                                            var_list=model_variables)
-    #     self.sess.run(tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
-    #
-    # def train(self, isRestore=True):
-    #
-    #     self.train_init()
-    #
-    #     self.loss = slim.losses.softmax_cross_entropy(logits=self.net,
-    #                                                   onehot_labels=self.y)
-    #     self.optimizer = tf.train.AdamOptimizer().minimize(self.loss,)
-    #
-    #     self.predicted = tf.argmax(inputs=self.net,
-    #                                axis=1)
-    #
-    #     self.actual = tf.argmax(inputs=self.y,
-    #                             axis=1)
-    #
-    #     train_op = slim.learning.create_train_op(total_loss=self.loss,
-    #                                              optimizer=self.optimizer)
-    #
-    #     slim.learning.train(train_op == train_op,
-    #                         logdir=self.tensorboard_directory,
-    #                         number_of_steps=1000,
-    #                         save_summaries_secs=300,
-    #                         save_interval_secs=600):
     def train_init(self):
 
         model_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
@@ -252,28 +300,6 @@ class Model(object):
                 print('--------------------------------------------------------')
 
     def validation(self):
-        num_val_batches = int(len(self.val_labels) / self.batch_size_val)
-        running_loss, running_accuracy = 0, 0
-        for val_step in range(num_val_batches):
-            val_x, val_y = next_batch(self.batch_size_val,
-                                      self.val_data,
-                                      self.val_labels)
-            loss, accuracy = self.sess.run([self.loss, self.accuracy],
-                                           feed_dict={self.is_training: False,
-                                                      self.x: val_x,
-                                                      self.y: val_y})
-
-            running_loss += loss
-            running_accuracy += accuracy
-
-        accuracy = running_accuracy / num_val_batches
-
-        val_summary = self.sess.run(self.val_summary,
-                                    feed_dict={self.val_accuracy: accuracy})
-
-        return {'accuracy': accuracy, 'summary': val_summary}
-
-    def test(self):
         num_val_batches = int(len(self.val_labels) / self.batch_size_val)
         running_loss, running_accuracy = 0, 0
         for val_step in range(num_val_batches):

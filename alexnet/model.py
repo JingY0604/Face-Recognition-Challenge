@@ -2,244 +2,135 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from sklearn.model_selection import KFold
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
+from tensorflow.contrib.slim.nets import alexnet
+from tensorflow.python.saved_model import tag_constants
 import numpy as np
 import os
 
-
-class ConvBlock():
-
-    def __init__(self,
-                 input_tensor,
-                 conv_param,
-                 pool_param,
-                 inner_activation,
-                 last_activation,
-                 use_batch_norm,
-                 is_training,
-                 trainable,
-                 padding='same'):
-        self.input_tensor = input_tensor
-        self.conv_param = conv_param
-        self.pool_param = pool_param
-        self.inner_activation = inner_activation
-        self.last_activation = last_activation
-        self.use_batch_norm = use_batch_norm
-        self.is_training = is_training
-        self.trainable = trainable
-        self.padding = padding
-
-    def build(self):
-        for layer_index in range(len(self.conv_param)):
-
-            conv_layer = self.conv_param[layer_index]
-            pool_layer = self.pool_param[layer_index]
-
-            if layer_index is 0:
-                network = self.input_tensor
-
-            activation = self.inner_activation
-            use_batch_norm = self.use_batch_norm
-            # If is last layer dont use batch norm
-            if layer_index is len(self.conv_param) - 1:
-                activation = self.last_activation
-                use_batch_norm = False
-
-            network = tf.layers.conv2d(inputs=network,
-                                       filters=conv_layer['filters'],
-                                       kernel_size=conv_layer['kernel_size'],
-                                       strides=conv_layer['strides'],
-                                       padding=self.padding,
-                                       activation=None,
-                                       use_bias=True,
-                                       kernel_initializer=tf.keras.initializers.he_uniform(),
-                                       trainable=True)
-
-            if use_batch_norm:
-                network = tf.layers.batch_normalization(inputs=network,
-                                                        training=self.is_training,
-                                                        trainable=self.trainable,
-                                                        scale=True)
-
-            if activation is not None:
-                network = activation(network,
-                                     name='relu')
-
-            if pool_layer is not None:
-                if pool_layer['use']:
-                    network = tf.layers.max_pooling2d(inputs=network,
-                                                      pool_size=pool_layer['pool_size'],
-                                                      strides=pool_layer['strides'],
-                                                      padding='valid',
-                                                      name='pool')
-        return network
+from utils.paths import Paths
 
 
-class Model():
+class Model(object):
 
-    def __init__(self, sess, data_shape, batch_size, batch_size_val, batch_size_test, epochs, learning_rate, conv_parameters, max_pool_parameters, dropout_parameters, fc_parameters, use_batch_norm, use_dropout, tensorboard_directory):
+    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, tensorboard_directory, val_epoch=10):
         self.sess = sess
         self.data_shape = data_shape
-        self.epochs = epochs
+        self.num_classes = num_classes
+        self.num_dense = num_dense
         self.batch_size = batch_size
         self.batch_size_val = batch_size_val
-        self.batch_size_test = batch_size_test
+        self.epochs = epochs
+        self.val_epoch = val_epoch
         self.learning_rate = learning_rate
-        self.conv_parameters = conv_parameters
-        self.max_pool_parameters = max_pool_parameters
-        self.dropout_parameters = dropout_parameters
-        self.fc_parameters = fc_parameters
         self.use_batch_norm = use_batch_norm
         self.use_dropout = use_dropout
+        self.dropout_parameters = dropout_parameters
+        self.fc_parameters = fc_parameters
         self.tensorboard_directory = tensorboard_directory
 
-        self.initModel()
+        self.init_model()
+        self.metrics()
 
-    def input_data(self, data, labels, val_data, val_labels, test_data, test_labels):
+    def train_data(self, data, labels):
         assert type(data).__module__ == np.__name__
         assert type(labels).__module__ == np.__name__
-        assert type(val_data).__module__ == np.__name__
-        assert type(val_labels).__module__ == np.__name__
-        assert type(test_data).__module__ == np.__name__
-        assert type(test_labels).__module__ == np.__name__
 
-        self.data = data
-        self.labels = labels
+        self.train_data = data
+        self.train_labels = labels
 
-        self.val_data = val_data
-        self.val_labels = val_labels
+    def test_data(self, data, labels):
+        assert type(data).__module__ == np.__name__
+        assert type(labels).__module__ == np.__name__
 
-        self.test_data = test_data
-        self.test_labels = test_labels
+        self.test_data = data
+        self.test_labels = labels
 
-    def initModel(self):
+    def val_data(self, data, labels):
+        assert type(data).__module__ == np.__name__
+        assert type(labels).__module__ == np.__name__
 
-        self.x = tf.placeholder(tf.float32,
-                                [None,
-                                 self.data_shape[0],
-                                 self.data_shape[1],
-                                 self.data_shape[2]])
+        self.val_data = data
+        self.val_labels = labels
 
-        self.y = tf.placeholder(tf.float32, [None, 62])
-        self.is_training = tf.placeholder(dtype=tf.bool, shape=None)
+    def init_model(self):
+        self.x = tf.placeholder(dtype=tf.float32,
+                                shape=[None,
+                                       self.data_shape[0],
+                                       self.data_shape[1],
+                                       self.data_shape[2]])
+        self.y = tf.placeholder(dtype=tf.float32,
+                                shape=[None, self.num_classes])
+
+        self.is_training = tf.placeholder(dtype=tf.bool,
+                                          shape=None)
+
+        self.global_epoch = tf.get_variable('global_epoch', shape=[], dtype=tf.int32,
+                                            initializer=tf.zeros_initializer, trainable=False)
 
         net = self.x
+
         print('> Input Tensor: {}'.format(str(list(net.get_shape())).rjust(10, ' ')))
-        layer_index = 1
-        for conv_param, pool_param in zip(self.conv_parameters, self.max_pool_parameters):
-            net = ConvBlock(input_tensor=net,
-                            conv_param=conv_param,
-                            pool_param=pool_param,
 
-                            inner_activation=tf.nn.relu,
-                            last_activation=tf.nn.relu,
-                            use_batch_norm=self.use_batch_norm,
+        net, _ = alexnet.alexnet_v2(inputs=net,
+                                    num_classes=self.num_classes,
+                                    is_training=self.is_training,
+                                    scope='alexnet')
 
-                            is_training=self.is_training,
-                            trainable=True).build()
-            print('> Layer {}: {}'.format(str(layer_index).rjust(3, ' '),
-                                          str(list(net.get_shape())).rjust(10, ' ')))
-            layer_index += 1
+        net = slim.flatten(inputs=net)
 
-        net = tf.layers.flatten(net,
-                                name='flatten')
-        net = tf.layers.dense(inputs=net,
-                              units=self.fc_parameters[0]['units'],  # tune
-                              activation=tf.nn.relu,
-                              use_bias=True,
-                              kernel_initializer=tf.keras.initializers.he_uniform(),
-                              bias_initializer=tf.zeros_initializer(),
-                              kernel_regularizer=None,
-                              bias_regularizer=None,
-                              trainable=True,
-                              name='fc_1')
-        print('> Fully Connected 1: {}'.format(str(list(net.get_shape())).rjust(10, ' ')))
+        for i, dropout_params, fc_params in zip(range(self.num_dense-1),
+                                                self.dropout_parameters,
+                                                self.fc_parameters):
+            net = slim.fully_connected(inputs=net,
+                                       num_outputs=fc_params['units'],
+                                       activation_fn=tf.nn.relu,
+                                       trainable=True,
+                                       scope='fc_{}'.format(i+1))
+            print('> Fully Connected {}: {}'.format(i+1,
+                                                    str(list(net.get_shape())).rjust(10, ' ')))
+            if self.use_dropout:
+                net = slim.dropout(inputs=net,
+                                   keep_prob=dropout_params['rate'],
+                                   is_training=self.is_training,
+                                   scope='dropout_{}'.format(i+1))
+            # if self.use_batch_norm:
+            net = slim.batch_norm(inputs=net,
+                                  is_training=self.is_training)
+            net = tf.nn.relu(net)
 
-        if self.use_dropout:
-            if self.dropout_parameters[0]['use']:
-                net = tf.layers.dropout(net,
-                                        rate=float(self.dropout_parameters[0]['rate']),
-                                        training=self.is_training,
-                                        name='do_fc_1')
+        net = slim.fully_connected(inputs=net,
+                                   num_outputs=self.num_classes,
+                                   activation_fn=None,
+                                   scope='fc_{}'.format(self.num_dense))
+        print('> Fully Connected {}: {}'.format(self.num_dense,
+                                                str(list(net.get_shape())).rjust(10, ' ')))
 
-        net = tf.layers.batch_normalization(inputs=net,
-                                            training=self.is_training,
-                                            trainable=True,
-                                            name='bn_fc_1',
-                                            scale=True)
+        self.net = net
 
-        net = tf.nn.relu(net)
-        net = tf.layers.dense(inputs=net,
-                              units=self.fc_parameters[1]['units'],  # tune
-                              activation=tf.nn.relu,
-                              use_bias=True,
-                              kernel_initializer=tf.keras.initializers.he_uniform(),
-                              bias_initializer=tf.zeros_initializer(),
-                              kernel_regularizer=None,
-                              bias_regularizer=None,
-                              trainable=True,
-                              name='fc_2')
-
-        print('> Fully Connected 2: {}'.format(str(list(net.get_shape())).rjust(10, ' ')))
-
-        if self.use_dropout:
-            if self.dropout_parameters[1]['use']:
-                net = tf.layers.dropout(net,
-                                        rate=float(self.dropout_parameters[1]['rate']),
-                                        training=self.is_training,
-                                        name='do_fc_2')
-        net = tf.layers.batch_normalization(inputs=net,
-                                            training=self.is_training,
-                                            trainable=True,
-                                            name='bn_fc_2',
-                                            scale=True)
-
-        net = tf.nn.relu(net)
-        net = tf.layers.dense(inputs=net,
-                              units=62,
-                              activation=None,
-                              use_bias=True,
-                              kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
-                              bias_initializer=tf.zeros_initializer(),
-                              kernel_regularizer=None,
-                              bias_regularizer=None,
-                              trainable=True,
-                              name='fc_3')
-        print('> Fully Connected 3: {}'.format(str(list(net.get_shape())).rjust(10, ' ')))
-
-        # Results
-        # ---------------------------------------------_------------------------
-        # Loss Calculation
+    def metrics(self):
         self.loss = tf.losses.softmax_cross_entropy(onehot_labels=self.y,
-                                                    logits=net)
+                                                    logits=self.net)
+
         self.loss_summary = tf.summary.scalar(name='Loss',
                                               tensor=self.loss)
 
-        self.predicted_indices = tf.argmax(input=net,
-                                           axis=1)
-        self.real_indices = tf.argmax(input=self.y,
-                                      axis=1)
+        self.predicted = tf.argmax(input=self.net,
+                                   axis=1,
+                                   name='predicted')
+        self.actual = tf.argmax(input=self.y,
+                                axis=1,
+                                name='actual')
 
-        self.accuracy = tf.cast(tf.equal(self.predicted_indices, self.real_indices),
+        self.accuracy = tf.cast(tf.equal(self.predicted, self.actual),
                                 dtype=tf.float32)
         self.accuracy = tf.reduce_mean(self.accuracy)
+
+        # self.accuracy = tf.metrics.accuracy(predictions=self.predicted,
+        #                                     labels=self.actual)
         self.accuracy_summary = tf.summary.scalar(name='Accuracy',
                                                   tensor=self.accuracy)
-
-        self.precision = tf.cast(tf.metrics.precision(labels=self.real_indices,
-                                                      predictions=self.predicted_indices), dtype=tf.float32)
-        self.precision_summary = tf.summary.scalar(name='Precision',
-                                                   tensor=self.precision)
-
-        self.recall = tf.cast(tf.metrics.recall(labels=self.real_indices,
-                                                predictions=self.predicted_indices), dtype=tf.float32)
-        self.recall_summary = tf.summary.scalar(name='Recall',
-                                                tensor=self.recall)
-
-        # self.f1_score = (2 * self.precision * self.recall) / (self.precision + self.recall)
-        # self.f1_summary = tf.summary.scalar(name='F1 Score',
-        #                                     tensor=self.f1f1_score)
 
         self.merged_summaries = tf.summary.merge(inputs=[self.loss_summary, self.accuracy_summary])
         self.val_accuracy = tf.placeholder(dtype=tf.float32, shape=None)
@@ -255,34 +146,47 @@ class Model():
                                                                var_list=model_variables)
         self.sess.run(tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
 
-    def train(self, isRestore=True):
+    def train(self, is_restore=True):
+        last_epoch = 1
 
         tf.logging.set_verbosity(tf.logging.INFO)
         self.train_init()
 
+        # Initalize Saver
         saver = tf.train.Saver()
 
-        model_path = self.tensorboard_directory + '/model.ckpt'
+        # If the tensorboard directory does not exist make it
+        # Else if the user wishes to restore, restore the model
+        if not Paths.exists(self.tensorboard_directory):
+            Paths.make_dir(self.tensorboard_directory)
+        elif is_restore:
+            try:
+                restore_path = tf.train.latest_checkpoint(checkpoint_dir=self.tensorboard_directory + '/model/')
+                if not restore_path:
+                    ValueError('Restore Path is not valid: {}'.format(repr(restore_path)))
+                saver.restore(sess=self.sess,
+                              save_path=restore_path)
+                last_epoch = self.sess.run(self.global_epoch)
+            except:
+                IOError('Failed to restore from checkpoint')
 
-        if isRestore:
-            if os.path.isfile(model_path):
-                saver = tf.train.import_meta_graph(model_path + '.meta')
-                saver.restore(model_path)
-
-        # TensorBoard & Saver Init
-        if not os.path.exists(self.tensorboard_directory):
-            os.makedirs(self.tensorboard_directory)
-        train_writer, val_writer = [tf.summary.FileWriter(os.path.join(self.tensorboard_directory, phase),
-                                                          self.sess.graph) for phase in ['train', 'val']]
+        train_writer, val_writer = [tf.summary.FileWriter(os.path.join(
+            self.tensorboard_directory, phase), self.sess.graph) for phase in ['train', 'val']]
 
         # self.sess.run(init_op)
-        num_batches = int(len(self.labels) / self.batch_size)
+        num_batches = int(len(self.train_labels) / self.batch_size)
         train_writer.add_graph(self.sess.graph)
         val_writer.add_graph(self.sess.graph)
-        for epoch in range(1, self.epochs+1):
+        print('--------------------------------------------------------')
+        print('> Begin Training ...')
+        print('--------------------------------------------------------')
+        for epoch in range(last_epoch, self.epochs+1):
+            global_epoch = self.sess.run(self.global_epoch) - 1
             for step in range(num_batches):
                 # step += 1
-                batch_x, batch_y = self.next_batch(self.batch_size, self.data, self.labels)
+                batch_x, batch_y = next_batch(self.batch_size,
+                                              self.train_data,
+                                              self.train_labels)
 
                 # print('Batch x: {}'.format(str(list(batch_x.shape)).rjust(10, ' ')))
                 # print('Batch y: {}'.format(str(list(batch_y.shape)).rjust(10, ' ')))
@@ -291,65 +195,62 @@ class Model():
                                                   feed_dict={self.is_training: True,
                                                              self.x: batch_x,
                                                              self.y: batch_y})
-                if step+1 is num_batches:
-                    # Output Loss to Terminal, Summary to TensorBoard
-                    print("> Epoch: {} Loss: {}".format(epoch, round(loss, 5)))
-                    train_writer.add_summary(summary, step)
+
+            # Output Loss to Stdout, Summary to TensorBoard
+            print("> Global Epoch: {} Epoch: {} Loss: {}".format(
+                str(global_epoch).ljust(len(str(abs(self.epochs)))),
+                str(epoch).ljust(len(str(abs(self.epochs)))),
+                round(loss, 7)))
+            train_writer.add_summary(summary, step)
 
             # Validation
-            if epoch % 10 is 0:
-                num_val_batches = int(len(self.val_labels) / self.batch_size_val)
-                running_loss, running_accuracy = 0, 0
-                for val_step in range(num_val_batches):
-                    epoch_x, epoch_y = self.next_batch(self.batch_size_val,
-                                                       self.val_data,
-                                                       self.val_labels)
-                    loss, accuracy = self.sess.run([self.loss, self.accuracy],
-                                                   feed_dict={self.is_training: False,
-                                                              self.x: epoch_x,
-                                                              self.y: epoch_y})
-
-                    running_loss += loss
-                    running_accuracy += accuracy
-
-                accuracy = running_accuracy/num_val_batches
-
-                val_summary = self.sess.run(self.val_summary,
-                                            feed_dict={self.val_accuracy: accuracy})
-                val_writer.add_summary(val_summary, epoch)
-                print('> Validation: Epoch: {} Accuracy: {}'.format(
-                    epoch, round(accuracy, 5)))
+            if epoch % self.val_epoch is 0:
+                val = self.validation()
+                val_writer.add_summary(val['summary'], epoch)
+                print('> Validation: Epoch: {} Accuracy: {}'.format(epoch,
+                                                                    round(val['accuracy'], 5)))
                 print('--------------------------------------------------------')
-                save_path = saver.save(self.sess, model_path, global_step=epoch)
 
-            if epoch % 500 is 0:
+                self.sess.run(self.global_epoch.assign(global_epoch + self.val_epoch + 1))
+
+                save_path = saver.save(sess=self.sess,
+                                       save_path=self.tensorboard_directory + '/model/model',
+                                       global_step=epoch)
+
                 print('> Model Saved at {0}'.format(save_path))
                 print('--------------------------------------------------------')
 
-    def test_init(self):
+    def validation(self):
+        num_val_batches = int(len(self.val_labels) / self.batch_size_val)
+        running_loss, running_accuracy = 0, 0
+        for val_step in range(num_val_batches):
+            val_x, val_y = next_batch(self.batch_size_val,
+                                      self.val_data,
+                                      self.val_labels)
+            loss, accuracy = self.sess.run([self.loss, self.accuracy],
+                                           feed_dict={self.is_training: False,
+                                                      self.x: val_x,
+                                                      self.y: val_y})
 
-        model_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            self.optimizer = tf.train.AdamOptimizer().minimize(self.loss,
-                                                               var_list=model_variables)
-        self.sess.run(tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
+            running_loss += loss
+            running_accuracy += accuracy
 
-    def test(self):
-        num_batches = int(len(self.val_labels) / self.batch_size_val)
-        precision, recall = self.sess.run([self.precision, self.recall],
-                                          feed_dict={self.is_training: False,
-                                                     self.x: self.test_data,
-                                                     self.y: self.test_labels})
-        return precision, recall, f1_score
+        accuracy = running_accuracy / num_val_batches
 
-    def next_batch(self, batch_size, data, labels):
+        val_summary = self.sess.run(self.val_summary,
+                                    feed_dict={self.val_accuracy: accuracy})
 
-        idx = np.arange(0, len(labels))
-        np.random.shuffle(idx)
+        return {'accuracy': accuracy, 'summary': val_summary}
 
-        idx = idx[:batch_size]
-        data_shuffled = [data[i] for i in idx]
-        labels_shuffled = [labels[i] for i in idx]
 
-        return np.asarray(data_shuffled), np.asarray(labels_shuffled)
+def next_batch(batch_size, data, labels):
+    # Randomly select data for the next batch
+    # Random sampling with replacement
+    index = np.arange(0, len(labels))
+    np.random.shuffle(index)
+
+    index = index[:batch_size]
+    data_shuffled = [data[i] for i in index]
+    labels_shuffled = [labels[i] for i in index]
+
+    return np.asarray(data_shuffled), np.asarray(labels_shuffled)
