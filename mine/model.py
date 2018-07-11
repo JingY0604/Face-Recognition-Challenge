@@ -82,7 +82,7 @@ class ConvBlock():
 
 class Model(object):
 
-    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, conv_parameters, max_pool_parameters tensorboard_directory, val_epoch=10):
+    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, conv_parameters, max_pool_parameters, tensorboard_directory, val_epoch=10):
         self.sess = sess
         self.data_shape = data_shape
         self.num_classes = num_classes
