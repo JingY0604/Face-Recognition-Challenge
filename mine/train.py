@@ -1,8 +1,15 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import tensorflow as tf
 from sklearn.datasets import fetch_lfw_people
 from sklearn.model_selection import train_test_split
 from model import Model
+
+from fire import Fire
+
+from utils.tensorboard import TensorBoard
+
 
 '''
 Data Description

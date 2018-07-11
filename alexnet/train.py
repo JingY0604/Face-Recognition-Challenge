@@ -10,6 +10,7 @@ from fire import Fire
 
 from utils.tensorboard import TensorBoard
 
+
 '''
 Data Description
 ----------------
