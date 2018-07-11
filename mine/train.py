@@ -19,7 +19,7 @@ def main(restore=True):
     tensorboard_directory = r'./tmp/tensorboard/001'
     tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\001',
                          r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\tmp\tensorboard\001']
-    tensorboard_names = ['AlexNet', 'ResNet']
+    tensorboard_names = ['Mine', 'ResNet']
 
     epochs = 1000000
     use_batch_norm = True
