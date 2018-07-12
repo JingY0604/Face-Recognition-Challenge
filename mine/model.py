@@ -167,7 +167,7 @@ class Model(object):
                                        activation_fn=tf.nn.relu,
                                        trainable=True,
                                        scope='fc_{}'.format(i+1))
-            print('> Fully Connected {}: {}'.format(i+1,
+            print('> Fully Connected {}: {}'.format(i + 1,
                                                     str(list(net.get_shape())).rjust(10, ' ')))
             if self.use_dropout:
                 net = slim.dropout(inputs=net,
@@ -254,21 +254,28 @@ class Model(object):
 
         # self.sess.run(init_op)
         num_batches = int(len(self.train_labels) / self.batch_size)
+        global_epoch = None
         train_writer.add_graph(self.sess.graph)
         val_writer.add_graph(self.sess.graph)
+
         print('--------------------------------------------------------')
         print('> Begin Training ...')
         print('--------------------------------------------------------')
+
         for epoch in range(last_epoch, self.epochs+1):
-            global_epoch = self.sess.run(self.global_epoch) - 1
+
+            # If global_epoch is not defined then, initalize global_epoch
+            # global_epoch will not exist if training the model from scratch
+            if global_epoch:
+                global_epoch = self.sess.run(self.global_epoch) - 1
+            else:
+                global_epoch = self.sess.run(self.global_epoch)
+
             for step in range(num_batches):
                 # step += 1
                 batch_x, batch_y = next_batch(self.batch_size,
                                               self.train_data,
                                               self.train_labels)
-
-                # print('Batch x: {}'.format(str(list(batch_x.shape)).rjust(10, ' ')))
-                # print('Batch y: {}'.format(str(list(batch_y.shape)).rjust(10, ' ')))
 
                 loss, summary, _, = self.sess.run([self.loss, self.merged_summaries, self.optimizer],
                                                   feed_dict={self.is_training: True,
