@@ -82,13 +82,14 @@ class ConvBlock():
 
 class Model(object):
 
-    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, conv_parameters, max_pool_parameters, tensorboard_directory, val_epoch=10):
+    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, batch_size_test, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, conv_parameters, max_pool_parameters, tensorboard_directory, val_epoch=10):
         self.sess = sess
         self.data_shape = data_shape
         self.num_classes = num_classes
         self.num_dense = num_dense
         self.batch_size = batch_size
         self.batch_size_val = batch_size_val
+        self.batch_size_test = batch_size_test
         self.epochs = epochs
         self.val_epoch = val_epoch
         self.learning_rate = learning_rate
@@ -309,14 +310,14 @@ class Model(object):
     def validation(self):
         num_val_batches = int(len(self.val_labels) / self.batch_size_val)
         running_loss, running_accuracy = 0, 0
-        for val_step in range(num_val_batches):
-            val_x, val_y = next_batch(self.batch_size_val,
-                                      self.val_data,
-                                      self.val_labels)
-            loss, accuracy = self.sess.run([self.loss, self.accuracy],
-                                           feed_dict={self.is_training: False,
-                                                      self.x: val_x,
-                                                      self.y: val_y})
+        for step in range(num_val_batches):
+            batch_x, batch_y = next_batch(self.batch_size_val,
+                                          self.val_data,
+                                          self.val_labels)
+            loss, accuracy, summary = self.sess.run([self.loss, self.accuracy, self.merged_summaries],
+                                                    feed_dict={self.is_training: False,
+                                                               self.x: batch_x,
+                                                               self.y: batch_y})
 
             running_loss += loss
             running_accuracy += accuracy
@@ -326,7 +327,38 @@ class Model(object):
         val_summary = self.sess.run(self.val_summary,
                                     feed_dict={self.val_accuracy: accuracy})
 
-        return {'accuracy': accuracy, 'summary': val_summary}
+        return {'accuracy': accuracy, 'summary': summary, 'accuracy_summary': val_summary}
+
+    def test(self):
+
+        self.sess.run(tf.global_variables_initializer())
+
+        try:
+            restore_path = tf.train.latest_checkpoint(checkpoint_dir=self.tensorboard_directory + '/model/')
+            if not restore_path:
+                ValueError('Restore Path is not valid: {}'.format(repr(restore_path)))
+            saver.restore(sess=self.sess,
+                          save_path=restore_path)
+        except:
+            IOError('Failed to restore from checkpoint')
+
+        num_batches = int(len(self.test_labels) / self.batch_size_test)
+        predicted_values, actual_values = [], []
+        print(num_batches)
+        for step in range(num_batches):
+            batch_x, batch_y = next_batch(self.batch_size_val,
+                                          self.test_data,
+                                          self.test_labels)
+
+            predicted, actual = self.sess.run([self.predicted, self.actual],
+                                              feed_dict={self.is_training: False,
+                                                         self.x: batch_x,
+                                                         self.y: batch_y})
+
+            predicted_values.append(predicted)
+            actual_values.append(actual)
+
+        return predicted, actual
 
 
 def next_batch(batch_size, data, labels):

@@ -25,8 +25,9 @@ print(len(set(dataset.target_names)))
 def main(restore=True):
     tensorboard_directory = r'./tmp/tensorboard/001'
     tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\001',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\tmp\tensorboard\001']
-    tensorboard_names = ['Mine', 'ResNet']
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\tmp\tensorboard\001',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\inception\tmp\tensorboard\001', ]
+    tensorboard_names = ['Mine', 'ResNet50', 'Inception3']
 
     epochs = 1000000
     use_batch_norm = True
@@ -103,7 +104,7 @@ def main(restore=True):
                   num_dense=3,
                   batch_size=batch_size,
                   batch_size_val=batch_size_val,
-                  batch_size_tes=batch_size_test,
+                  batch_size_test=batch_size_test,
                   epochs=epochs,
                   learning_rate=learning_rate,
                   use_batch_norm=use_dropout,

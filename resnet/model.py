@@ -229,9 +229,13 @@ class Model(object):
                 print('--------------------------------------------------------')
 
     def validation(self):
-        num_val_batches = int(len(self.val_labels) / self.batch_size_val)
+        tf.logging.set_verbosity(tf.logging.INFO)
+
+        # Initalize Saver
+        saver = tf.train.Saver()
+        num_batches = int(len(self.val_labels) / self.batch_size_val)
         running_loss, running_accuracy = 0, 0
-        for val_step in range(num_val_batches):
+        for val_step in range(num_batches):
             val_x, val_y = next_batch(self.batch_size_val,
                                       self.val_data,
                                       self.val_labels)
@@ -243,7 +247,7 @@ class Model(object):
             running_loss += loss
             running_accuracy += accuracy
 
-        accuracy = running_accuracy / num_val_batches
+        accuracy = running_accuracy / num_batches
 
         val_summary = self.sess.run(self.val_summary,
                                     feed_dict={self.val_accuracy: accuracy})
@@ -251,26 +255,35 @@ class Model(object):
         return {'accuracy': accuracy, 'summary': val_summary}
 
     def test(self):
-        num_val_batches = int(len(self.test_labels) / self.batch_size_test)
-        running_loss, running_accuracy = 0, 0
-        for val_step in range(num_val_batches):
-            val_x, val_y = next_batch(self.batch_size_val,
-                                      self.val_data,
-                                      self.val_labels)
-            loss, accuracy = self.sess.run([self.loss, self.accuracy],
-                                           feed_dict={self.is_training: False,
-                                                      self.x: val_x,
-                                                      self.y: val_y})
 
-            running_loss += loss
+        self.sess.run(tf.global_variables_initializer())
+
+        try:
+            restore_path = tf.train.latest_checkpoint(checkpoint_dir=self.tensorboard_directory + '/model/')
+            if not restore_path:
+                ValueError('Restore Path is not valid: {}'.format(repr(restore_path)))
+            saver.restore(sess=self.sess,
+                          save_path=restore_path)
+        except:
+            IOError('Failed to restore from checkpoint')
+
+        num_batches = int(len(self.test_labels) / self.batch_size_test)
+        predicted_values, actual_values, running_accuracy = [], [], 0
+        for step in range(num_batches):
+            batch_x, batch_y = next_batch(self.batch_size_val,
+                                          self.test_data,
+                                          self.test_labels)
+
+            predicted, actual, accuracy = self.sess.run([self.predicted, self.actual, self.accuracy],
+                                                        feed_dict={self.is_training: False,
+                                                                   self.x: batch_x,
+                                                                   self.y: batch_y})
             running_accuracy += accuracy
+            predicted_values.append(predicted)
+            actual_values.append(actual)
+        running_accuracy = running_accuracy/num_batches
 
-        accuracy = running_accuracy / num_val_batches
-
-        val_summary = self.sess.run(self.val_summary,
-                                    feed_dict={self.val_accuracy: accuracy})
-
-        return {'accuracy': accuracy, 'summary': val_summary}
+        return predicted, actual, running_accuracy
 
 
 def next_batch(batch_size, data, labels):
