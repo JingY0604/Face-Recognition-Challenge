@@ -103,6 +103,7 @@ def main(restore=True):
                   num_dense=3,
                   batch_size=batch_size,
                   batch_size_val=batch_size_val,
+                  batch_size_tes=batch_size_test,
                   epochs=epochs,
                   learning_rate=learning_rate,
                   use_batch_norm=use_dropout,
