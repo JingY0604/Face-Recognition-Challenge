@@ -14,13 +14,14 @@ from utils.paths import Paths
 
 class Model(object):
 
-    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, tensorboard_directory, val_epoch=10):
+    def __init__(self, sess, data_shape, num_classes, num_dense, batch_size, batch_size_val, batch_size_test, epochs, learning_rate, use_batch_norm, use_dropout, dropout_parameters, fc_parameters, tensorboard_directory, val_epoch=10):
         self.sess = sess
         self.data_shape = data_shape
         self.num_classes = num_classes
         self.num_dense = num_dense
         self.batch_size = batch_size
         self.batch_size_val = batch_size_val
+        self.batch_size_test = batch_size_test
         self.epochs = epochs
         self.val_epoch = val_epoch
         self.learning_rate = learning_rate
@@ -137,37 +138,6 @@ class Model(object):
         self.val_summary = tf.summary.scalar(name='Val Accuracy',
                                              tensor=self.val_accuracy)
 
-    # def train_init(self):
-    #
-    #     model_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-    #     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    #     with tf.control_dependencies(update_ops):
-    #         self.optimizer = tf.train.AdamOptimizer().minimize(self.loss,
-    #                                                            var_list=model_variables)
-    #     self.sess.run(tf.variables_initializer(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)))
-    #
-    # def train(self, isRestore=True):
-    #
-    #     self.train_init()
-    #
-    #     self.loss = slim.losses.softmax_cross_entropy(logits=self.net,
-    #                                                   onehot_labels=self.y)
-    #     self.optimizer = tf.train.AdamOptimizer().minimize(self.loss,)
-    #
-    #     self.predicted = tf.argmax(inputs=self.net,
-    #                                axis=1)
-    #
-    #     self.actual = tf.argmax(inputs=self.y,
-    #                             axis=1)
-    #
-    #     train_op = slim.learning.create_train_op(total_loss=self.loss,
-    #                                              optimizer=self.optimizer)
-    #
-    #     slim.learning.train(train_op == train_op,
-    #                         logdir=self.tensorboard_directory,
-    #                         number_of_steps=1000,
-    #                         save_summaries_secs=300,
-    #                         save_interval_secs=600):
     def train_init(self):
 
         model_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
@@ -206,21 +176,28 @@ class Model(object):
 
         # self.sess.run(init_op)
         num_batches = int(len(self.train_labels) / self.batch_size)
+        global_epoch = None
         train_writer.add_graph(self.sess.graph)
         val_writer.add_graph(self.sess.graph)
+
         print('--------------------------------------------------------')
         print('> Begin Training ...')
         print('--------------------------------------------------------')
+
         for epoch in range(last_epoch, self.epochs+1):
-            global_epoch = self.sess.run(self.global_epoch) - 1
+
+            # If global_epoch is not defined then, initalize global_epoch
+            # global_epoch will not exist if training the model from scratch
+            if global_epoch:
+                global_epoch = self.sess.run(self.global_epoch) - 1
+            else:
+                global_epoch = self.sess.run(self.global_epoch)
+
             for step in range(num_batches):
                 # step += 1
                 batch_x, batch_y = next_batch(self.batch_size,
                                               self.train_data,
                                               self.train_labels)
-
-                # print('Batch x: {}'.format(str(list(batch_x.shape)).rjust(10, ' ')))
-                # print('Batch y: {}'.format(str(list(batch_y.shape)).rjust(10, ' ')))
 
                 loss, summary, _, = self.sess.run([self.loss, self.merged_summaries, self.optimizer],
                                                   feed_dict={self.is_training: True,
@@ -274,7 +251,7 @@ class Model(object):
         return {'accuracy': accuracy, 'summary': val_summary}
 
     def test(self):
-        num_val_batches = int(len(self.val_labels) / self.batch_size_val)
+        num_val_batches = int(len(self.test_labels) / self.batch_size_test)
         running_loss, running_accuracy = 0, 0
         for val_step in range(num_val_batches):
             val_x, val_y = next_batch(self.batch_size_val,
