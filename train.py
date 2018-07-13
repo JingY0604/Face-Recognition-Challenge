@@ -9,7 +9,7 @@ import random
 
 from fire import Fire
 
-from utils.tensorboard import TensorBoard
+from utils.tensorboard import Tensorboard
 from model import Model
 from utils.augment import Augment
 
@@ -26,19 +26,19 @@ print(len(set(dataset.target_names)))
 augments = ['brightness', 'hue', 'contrast', 'flip_h']
 
 
-def main(restore=True):
+def train(restore=True):
     tensorboard_directory = r'./tmp/tensorboard/014'
-    tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\005',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\007',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\008',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\009',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\010',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\011',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\012',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\013',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\mine\tmp\tensorboard\014']
+    tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\005',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\007',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\008',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\009',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\010',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\011',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\012',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\013',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\014']
     tensorboard_names = ['mine-64x3-64x2', 'mine-64x4-150x1', 'mine-64x3-543-62x1', 'mine-64x3-543-62x2-dr20',
-                         'mine-64x3-543-62x2', 'full_image-64x3-543-62x2', 'full_image-64x3-345-62x2', 'full_image-64x3-357-62x2', 'full_image-64x3-357-62x2']
+                         'mine-64x3-543-62x2', 'full_image-64x3-543-62x2', 'full_image-64x3-345-62x2', 'full_image-64x3-357-62x2', 'aug_full_image-64x3-357-62x2']
 
     epochs = 50000
     use_batch_norm = True
@@ -112,7 +112,7 @@ def main(restore=True):
     labels_encoded[np.arange(len(labels)), labels] = 1
 
     croped = []
-    for _ in range(3):
+    for _ in range(2):
         croped.append(aug.randomCropAll(images, 63, 63))
 
     a1 = aug.augment(images=images,
@@ -130,24 +130,24 @@ def main(restore=True):
                      width=63,
                      height=63)
 
-    a4 = aug.augment(images=images,
-                     operations=['flip_h', 'contrast', 'brightness', 'hue'],
-                     width=63,
-                     height=63)
+    # a4 = aug.augment(images=images,
+    #                  operations=['flip_h', 'contrast', 'brightness', 'hue'],
+    #                  width=63,
+    #                  height=63)
 
     # a5 = aug.augment(images=images,
     #                  operations=['flip_h', 'brightness'],
     #                  width=63,
     #                  height=63)
 
-    images_selected, labels_selected = [], []
-
-    images_selected = np.concatenate((croped[0], croped[1], a1, a2, a3, a4), axis=0)
-    labels_selected = np.concatenate([labels_encoded, labels_encoded, labels_encoded, labels_encoded, labels_encoded,
+    images_selected = np.concatenate((croped[0], croped[1], a1, a2, a3), axis=0)
+    labels_selected = np.concatenate([labels_encoded, labels_encoded, labels_encoded, labels_encoded,
                                       labels_encoded], axis=0)
+    if type(images_selected).__module__ is not np.__name__:
+        images_selected = np.array(images_selected)
+    if type(labels_selected).__module__ is not np.__name__:
+        labels_selected = np.array(labels_selected)
 
-    images_selected = np.array(images_selected)
-    labels_selected = np.array(labels_selected)
     print(images_selected.shape)
 
     X_train, X_test, y_train, y_test = train_test_split(images_selected, labels_selected, test_size=0.30)
@@ -155,9 +155,11 @@ def main(restore=True):
 
     print('> Number of Classes: {}'.format(len(set(labels))))
 
-    batch_size = int(len(y_train) * 0.05)
-    batch_size_val = int(len(y_val) * 0.10)
-    batch_size_test = int(len(y_test) * 0.05)
+    # batch_size = int(len(y_train) * 0.05)
+    # batch_size_val = int(len(y_val) * 0.10)
+    # batch_size_test = int(len(y_test) * 0.05)
+
+    batch_size = 30
 
     model.train_data(data=X_train,
                      labels=y_train)
@@ -167,10 +169,12 @@ def main(restore=True):
                     labels=y_test)
 
     model.train(batch_size=batch_size,
-                batch_size_val=batch_size_val,
+                batch_size_val=batch_size,
                 epochs=epochs,
                 is_restore=restore)
 
+    return tensorboard_directory
+
 
 if __name__ == '__main__':
-    Fire(main)
+    Fire(train)
