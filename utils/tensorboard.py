@@ -4,7 +4,7 @@ import os
 
 class Tensorboard(object):
 
-    def make(paths, names=None, host='127.0.0.1', _print=True, copy=True):
+    def make(paths, names=None, host='127.0.0.1', _print=True):
         assert isinstance(paths, list), 'Paths not type list'
         assert isinstance(names, list) or isinstance(names, type(None)), 'Names not type list or None'
         command = 'tensorboard'
@@ -29,24 +29,17 @@ class Tensorboard(object):
             command += '--host' + ' ' + host
 
         if _print:
-            print('> {}'.format(repr(command)))
-        if copy:
-            TensorBoard.copy(command)
-        return command
+            print('> {}'.format(command))
 
-    def copy(command):
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(command)
-        win32clipboard.CloseClipboard()
+        return command
 
 
 if __name__ == '__main__':
-    paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\alexnet\tmp\tensorboard\third_training',
-             r'C:\Users\parth\Documents\GitHub\Facial-Recognition\resnet\v2\tmp\tensorboard\001']
-    names = ['AlexNet', 'ResNet']
-    host = '127.0.0.1'
 
-    tb = Tensorboard.start(paths=paths,
-                           names=names,
-                           host=host)
+    tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\013',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\014']
+    tensorboard_names = ['full-images', 'augment-images']
+    TensorBoard.make(paths=tensorboard_paths,
+                     names=tensorboard_names,
+                     host='127.0.0.1',
+                     _print=True)
