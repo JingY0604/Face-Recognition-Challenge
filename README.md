@@ -1,5 +1,5 @@
 
-# Face Recognition Challenge - Parth S. Patel
+# Face Recognition Challenge
 
 Code: https://github.com/parthspatel/Face-Recognition-Challenge
 
