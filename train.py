@@ -39,6 +39,11 @@ def train(restore=True):
                          r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\014']
     tensorboard_names = ['mine-64x3-64x2', 'mine-64x4-150x1', 'mine-64x3-543-62x1', 'mine-64x3-543-62x2-dr20',
                          'mine-64x3-543-62x2', 'full_image-64x3-543-62x2', 'full_image-64x3-345-62x2', 'full_image-64x3-357-62x2', 'aug_full_image-64x3-357-62x2']
+    cmd = TensorBoard.make(paths=tensorboard_paths,
+                           names=tensorboard_names,
+                           host='127.0.0.1',
+                           _print=True,
+                           copy=True)
 
     epochs = 50000
     use_batch_norm = True
@@ -74,12 +79,6 @@ def train(restore=True):
     # Fully Connected Layers unit size
     num_dense = 2
     fc_parameters = [{'units': 62}, {'units': 62}]
-
-    cmd = TensorBoard.make(paths=tensorboard_paths,
-                           names=tensorboard_names,
-                           host='127.0.0.1',
-                           _print=True,
-                           copy=True)
 
     # Data
     #------------------------------------------------------------------------------
