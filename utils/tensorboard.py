@@ -2,7 +2,7 @@ import win32clipboard
 import os
 
 
-class TensorBoard(object):
+class Tensorboard(object):
 
     def make(paths, names=None, host='127.0.0.1', _print=True, copy=True):
         assert isinstance(paths, list), 'Paths not type list'
@@ -29,7 +29,7 @@ class TensorBoard(object):
             command += '--host' + ' ' + host
 
         if _print:
-            print('> {}'.format(command))
+            print('> {}'.format(repr(command)))
         if copy:
             TensorBoard.copy(command)
         return command
@@ -47,6 +47,6 @@ if __name__ == '__main__':
     names = ['AlexNet', 'ResNet']
     host = '127.0.0.1'
 
-    tb = TensorBoard.start(paths=paths,
+    tb = Tensorboard.start(paths=paths,
                            names=names,
                            host=host)
