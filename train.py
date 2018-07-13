@@ -128,16 +128,6 @@ def train(restore=True):
                      width=63,
                      height=63)
 
-    # a4 = aug.augment(images=images,
-    #                  operations=['flip_h', 'contrast', 'brightness', 'hue'],
-    #                  width=63,
-    #                  height=63)
-
-    # a5 = aug.augment(images=images,
-    #                  operations=['flip_h', 'brightness'],
-    #                  width=63,
-    #                  height=63)
-
     images_selected = np.concatenate((croped[0], croped[1], a1, a2, a3), axis=0)
     labels_selected = np.concatenate([labels_encoded, labels_encoded, labels_encoded, labels_encoded,
                                       labels_encoded], axis=0)
@@ -146,16 +136,12 @@ def train(restore=True):
     if type(labels_selected).__module__ is not np.__name__:
         labels_selected = np.array(labels_selected)
 
-    print(images_selected.shape)
+    print('> Data Shape: {}'.format(images_selected.shape))
 
     X_train, X_test, y_train, y_test = train_test_split(images_selected, labels_selected, test_size=0.30)
     X_train, X_val, y_train, y_val = train_test_split(images_selected, labels_selected, test_size=0.30)
 
     print('> Number of Classes: {}'.format(len(set(labels))))
-
-    # batch_size = int(len(y_train) * 0.05)
-    # batch_size_val = int(len(y_val) * 0.10)
-    # batch_size_test = int(len(y_test) * 0.05)
 
     batch_size = 30
 

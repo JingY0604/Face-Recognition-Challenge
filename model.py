@@ -261,7 +261,7 @@ class Model(object):
 
         self.merged_summaries = tf.summary.merge(inputs=[self.loss_summary, self.accuracy_summary])
         self.val_accuracy = tf.placeholder(dtype=tf.float32, shape=None)
-        self.val_summary = tf.summary.scalar(name='Val Accuracy',
+        self.val_summary = tf.summary.scalar(name='Val_Accuracy',
                                              tensor=self.val_accuracy)
 
     def train_init(self):
@@ -381,8 +381,8 @@ class Model(object):
 
         return {'accuracy': accuracy, 'summary': summary, 'accuracy_summary': val_summary}
 
-    def test(self, batch_size_test):
-        self.batch_size_test = batch_size_test
+    def test(self, batch_size):
+        self.batch_size_test = batch_size
 
         self.sess.run(tf.global_variables_initializer())
 
@@ -398,7 +398,7 @@ class Model(object):
         num_batches = int(len(self.test_labels) / self.batch_size_test)
         predicted_values, actual_values, running_accuracy = [], [], 0
         for step in range(num_batches):
-            batch_x, batch_y = next_batch(self.batch_size_val,
+            batch_x, batch_y = next_batch(self.batch_size_test,
                                           self.test_data,
                                           self.test_labels)
 
