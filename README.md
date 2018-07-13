@@ -143,7 +143,7 @@ print('> Number of Classes: {}'.format(len(set(dataset.target_names))))
     > Number of Classes: 62
 
 
-Split Data into training, test, and validation sets
+Split Data into training, test sets
 
 
 ```python
