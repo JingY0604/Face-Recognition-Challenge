@@ -27,7 +27,7 @@ augments = ['brightness', 'hue', 'contrast', 'flip_h']
 
 
 def train(restore=True):
-    tensorboard_directory = r'./tmp/tensorboard/014'
+    tensorboard_directory = r'./tmp/tensorboard/015'
     tensorboard_paths = [r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\005',
                          r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\007',
                          r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\008',
@@ -36,9 +36,10 @@ def train(restore=True):
                          r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\011',
                          r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\012',
                          r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\013',
-                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\014']
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\014',
+                         r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\015']
     tensorboard_names = ['mine-64x3-64x2', 'mine-64x4-150x1', 'mine-64x3-543-62x1', 'mine-64x3-543-62x2-dr20',
-                         'mine-64x3-543-62x2', 'full_image-64x3-543-62x2', 'full_image-64x3-345-62x2', 'full_image-64x3-357-62x2', 'aug_full_image-64x3-357-62x2']
+                         'mine-64x3-543-62x2', 'full_image-64x3-543-62x2', 'full_image-64x3-345-62x2', 'full_image-64x3-357-62x2', 'aug_full_image-64x3-357-62x2', 'cropped']
     Tensorboard.make(paths=tensorboard_paths,
                      names=tensorboard_names,
                      host='127.0.0.1',
@@ -113,24 +114,23 @@ def train(restore=True):
     for _ in range(2):
         croped.append(aug.randomCropAll(images, 63, 63))
 
-    a1 = aug.augment(images=images,
-                     operations=['flip_h', 'brightness', 'hue'],
-                     width=63,
-                     height=63)
+    # a1 = aug.augment(images=images,
+    #                  operations=['flip_h', 'brightness', 'hue'],
+    #                  width=63,
+    #                  height=63)
+    #
+    # a2 = aug.augment(images=images,
+    #                  operations=['flip_h', 'hue'],
+    #                  width=63,
+    #                  height=63)
+    #
+    # a3 = aug.augment(images=images,
+    #                  operations=['flip_h', 'contrast', 'hue'],
+    #                  width=63,
+    #                  height=63)
 
-    a2 = aug.augment(images=images,
-                     operations=['flip_h', 'hue'],
-                     width=63,
-                     height=63)
-
-    a3 = aug.augment(images=images,
-                     operations=['flip_h', 'contrast', 'hue'],
-                     width=63,
-                     height=63)
-
-    images_selected = np.concatenate((croped[0], croped[1], a1, a2, a3), axis=0)
-    labels_selected = np.concatenate([labels_encoded, labels_encoded, labels_encoded, labels_encoded,
-                                      labels_encoded], axis=0)
+    images_selected = np.concatenate((croped[0], croped[1]), axis=0)
+    labels_selected = np.concatenate([labels_encoded, labels_encoded], axis=0)
     if type(images_selected).__module__ is not np.__name__:
         images_selected = np.array(images_selected)
     if type(labels_selected).__module__ is not np.__name__:

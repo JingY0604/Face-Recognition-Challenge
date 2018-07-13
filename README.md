@@ -1,1 +1,1 @@
-# Facial-Recognition
+# Face Recognition Challenge

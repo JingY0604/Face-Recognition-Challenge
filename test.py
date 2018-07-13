@@ -26,7 +26,7 @@ print(len(set(dataset.target_names)))
 
 
 def test(restore=True):
-    tensorboard_directory = r'./tmp/tensorboard/014'
+    tensorboard_directory = r'./models/001'
 
     use_batch_norm = True
     use_dropout = True

@@ -38,7 +38,11 @@ class Augment(object):
     def randomCropAll(self, imgs, width, height):
         imgs_l = []
         for i in range(imgs.shape[0]):
-            imgs_l.append(self.randomCrop(imgs[i], width, height))
+            image = imgs[i]
+            image = self.randomCrop(image, width, height)
+            # image = tf.minimum(image, 1.0)
+            # image = tf.maximum(image, 0.0)
+            imgs_l.append(image)
         return np.array(imgs_l)
 
     def random_hue(self, image, max_delta=0.5):
