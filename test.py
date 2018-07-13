@@ -26,7 +26,7 @@ print(len(set(dataset.target_names)))
 
 
 def test(restore=True):
-    tensorboard_directory = r'./models/001'
+    tensorboard_directory = r'C:\Users\parth\Documents\GitHub\Facial-Recognition\tmp\tensorboard\008'
 
     use_batch_norm = True
     use_dropout = True
