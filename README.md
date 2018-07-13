@@ -31,7 +31,7 @@ import pylab as pl
 
     c:\program files\python 3.5\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
       from ._conv import register_converters as _register_converters
-
+    
 
 
 ```python
@@ -44,7 +44,7 @@ from train import train
 ### Data
 Fetch the data and split into images and labels
 
-Here I modified the input data from the given example.  I changed the resize of the image from 60% to 100% and the color of the iamge from greyscale to color in order to preserve features and help reduce overfitting in the CNN.
+Here I modified the input data from the given example.  I changed the resize of the image from 60% to 100% and the color of the image from greyscale to color in order to help reduce overfitting in the CNN.
 
 I kept the minimum number of faces per person at 20, as changing this would make it dificult to compare my method with the original.
 
@@ -84,7 +84,7 @@ print('> Classes: {}'.format(set(labels)))
     > Number of Classes: 62
     > People: {'Hugo Chavez', 'Juan Carlos Ferrero', 'Jennifer Aniston', 'Jose Maria Aznar', 'Gloria Macapagal Arroyo', 'Jennifer Capriati', 'Angelina Jolie', 'Donald Rumsfeld', 'Luiz Inacio Lula da Silva', 'Igor Ivanov', 'Alejandro Toledo', 'Michael Bloomberg', 'Vicente Fox', 'Carlos Menem', 'Mahmoud Abbas', 'Guillermo Coria', 'Hans Blix', 'Colin Powell', 'David Beckham', 'Ricardo Lagos', 'Andre Agassi', 'Silvio Berlusconi', 'Rudolph Giuliani', 'Gerhard Schroeder', 'Jean Chretien', 'Jeremy Greenstock', 'Jiang Zemin', 'Jennifer Lopez', 'Amelie Mauresmo', 'Atal Bihari Vajpayee', 'Paul Bremer', 'Roh Moo-hyun', 'Tony Blair', 'Gray Davis', 'Hamid Karzai', 'Megawati Sukarnoputri', 'George W Bush', 'Kofi Annan', 'Tiger Woods', 'Vladimir Putin', 'Laura Bush', 'John Negroponte', 'Jacques Chirac', 'Tom Ridge', 'Winona Ryder', 'Lindsay Davenport', 'Serena Williams', 'Nestor Kirchner', 'Jack Straw', 'George Robertson', 'Tom Daschle', 'Bill Clinton', 'Naomi Watts', 'Saddam Hussein', 'Junichiro Koizumi', 'Lleyton Hewitt', 'Ariel Sharon', 'Pete Sampras', 'Recep Tayyip Erdogan', 'Alvaro Uribe', 'John Ashcroft', 'Arnold Schwarzenegger'}
     > Classes: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61}
-
+    
 
 ### Augmentation
 Augment the data through:
@@ -127,7 +127,7 @@ if type(labels_selected).__module__ is not np.__name__:
 
     > Converting images to a numpy array
     > Converting labels to a numpy array
-
+    
 
 Augmented Data Description
 
@@ -141,7 +141,7 @@ print('> Number of Classes: {}'.format(len(set(dataset.target_names))))
     > Data Shape: (3023, 63, 63, 3)
     > Label Shape: (3023, 62)
     > Number of Classes: 62
-
+    
 
 Split Data into training, test sets
 
@@ -219,7 +219,7 @@ print('> Number of Classes: {}'.format(len(set(dataset.target_names))))
 
     > Data Shape: (3023, 63, 63, 3)
     > Number of Classes: 62
-
+    
 
 
 ```python
@@ -253,7 +253,7 @@ model = Model(sess=tf.Session(),
     > Dropout Enabled
     > Batch Norm Enabled
     > Fully Connected 2: [Dimension(None), Dimension(62)]
-
+    
 
 ### Test Model
 
@@ -272,7 +272,7 @@ print(vals)
     (array([36, 36, 36, 36, 61, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36,
            25, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36], dtype=int64), array([ 5, 10,  7, 34, 48, 58, 24, 12,  9, 50, 34,  5, 53, 54, 12, 42, 14,
            14, 14, 21, 39, 35, 14, 12,  2, 10, 11, 14, 19,  7], dtype=int64), 0.02444444547096888)
-
+    
 
 
 ```python
@@ -290,7 +290,7 @@ print(actual)
      36 36 36 36 36 36]
     [ 5 10  7 34 48 58 24 12  9 50 34  5 53 54 12 42 14 14 14 21 39 35 14 12
       2 10 11 14 19  7]
-
+    
 
 
 ```python
@@ -298,7 +298,7 @@ print(classification_report(actual, predicted, target_names=labels_names_selecte
 ```
 
                                precision    recall  f1-score   support
-
+    
              Alejandro Toledo       0.00      0.00      0.00         1
                  Alvaro Uribe       0.00      0.00      0.00         2
               Amelie Mauresmo       0.00      0.00      0.00         2
@@ -322,10 +322,10 @@ print(classification_report(actual, predicted, target_names=labels_names_selecte
                     Hans Blix       0.00      0.00      0.00         1
                   Hugo Chavez       0.00      0.00      0.00         1
                   Igor Ivanov       0.00      0.00      0.00         0
-
+    
                   avg / total       0.00      0.00      0.00        30
-
-
+    
+    
 
     c:\program files\python 3.5\lib\site-packages\sklearn\metrics\classification.py:1428: UserWarning: labels size, 23, does not match size of target_names, 62
       .format(len(labels), len(target_names))
@@ -333,7 +333,7 @@ print(classification_report(actual, predicted, target_names=labels_names_selecte
       'precision', 'predicted', average, warn_for)
     c:\program files\python 3.5\lib\site-packages\sklearn\metrics\classification.py:1137: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples.
       'recall', 'true', average, warn_for)
-
+    
 
 Plot the results
 
@@ -361,7 +361,7 @@ for i in range(n_row * n_col):
 ```
 
 
-![png](imgs/output_48_0.png)
+![png](output_48_0.png)
 
 
 As you can see, the model is currently not predicting well, and that is evident before testing via tensorboard.  The images below in training overview for the augmented data model show that the model has not had enough time to learn from the features.  With more training time, I believe this model will perform better.  The model may also perform better if the crop size is increased.  The current size, does not capture the whole face and would make it more dificult for hte model to predict who is portrayed.
@@ -379,20 +379,25 @@ This is the best performing model being trained on the augmented data.
 
 Due to the few training epochs, it is not possible to derive a conclusion on how well the model is performing.
 
-### Best Performing Model
+### Best Performing Custom Model
 
 ![best_acc](imgs/best_full_model_training_acc.png)
 ![best_loss](imgs/best_full_model_training_loss.png)
 
-This is my best training.
+**Test Results:**
 
-The blue line is the validation, and the orange line is the training.  The ending accuracies are 0.7 and 0.8 for validation and training respectively.  Looking at the loss, we can see that after 1000 epochs, the validation loss is rising, leading me to belive that the model was overfitting. After testing the model, it was evedent that the model was severly overfitted, having such a high difference between accuracies and increasing validation loss.
+![best_test](imgs\best_full_model_test_output.png)
 
-### Worst Performing Model
+This is my best training, trained of one my own custom models.
 
-![worst_acc](imgs/underfit_full_model_training_acc.png)
-![worst_loss](imgs/underfit_full_model_training_loss.png)
+The blue line is the validation, and the orange line is the training.  The ending accuracies are 0.7 and 0.8 for validation and training respectively.  Looking at the loss, we can see that after 1000 epochs, the validation loss is rising, leading me to belive that the model was overfitting. After testing the model, it was evident that the model was severely overfitted, having such a high difference between accuracies and increasing validation loss.
 
-This is my worst training.
+### Alexnet, Resnet, FaceNet
 
-The green line is the validation, and the pink line is the training.  With the validation accuracy being higher than the training accuracy and the valdiation loss being lower than the training loss, it is clear the the model is underfitting.  After testing the model, it was clear the the model was unable to learn from the features.
+The three models were all similar in results.
+
+![resnet_acc](imgs/res_net_val_acc.png)
+
+![resnet_res](imgs/res_net_output.png)
+
+It is clear from this that ResNet and the other models were too deep and overfitting.
